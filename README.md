@@ -34,12 +34,6 @@ This project solves that by providing an AI assistant that:
 - Scraper API (product data)
 - HTTP APIs
 
-## 📸 Workflow
-_Add screenshots of your n8n workflow here_
-
-## 🔒 Notes
-- No credentials or API keys are included
-- This repository focuses on architecture and workflow design
 
 ## 📌 Status
 🚧 Actively improving and adding features
