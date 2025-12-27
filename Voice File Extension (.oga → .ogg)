@@ -1,0 +1,9 @@
+items = _items
+
+for item in items:
+    if "binary" in item and "data" in item["binary"]:
+        file_data = item["binary"]["data"]
+        if "fileName" in file_data:
+            file_data["fileName"] = file_data["fileName"].replace(".oga", ".ogg")
+
+return items
