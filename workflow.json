@@ -1,0 +1,183 @@
+{
+  "name": "n8n AI Shopping Assistant (Sanitized Example)",
+  "nodes": [
+    {
+      "id": "telegramTrigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [-800, 0],
+      "parameters": {
+        "updates": ["message"]
+      },
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram Bot Credentials (NOT INCLUDED)"
+        }
+      }
+    },
+    {
+      "id": "checkMessageType",
+      "name": "Check Message Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-600, 0],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.voice }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "getAudioFile",
+      "name": "Get Audio File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [-400, -120],
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $json.message.voice.file_id }}"
+      },
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram Bot Credentials (NOT INCLUDED)"
+        }
+      }
+    },
+    {
+      "id": "renameAudio",
+      "name": "Rename .oga to .ogg",
+      "type": "n8n-nodes-base.python",
+      "typeVersion": 1,
+      "position": [-200, -120],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "pythonCode": "items = _items\nfor item in items:\n    if \"binary\" in item and \"data\" in item[\"binary\"]:\n        if \"fileName\" in item[\"binary\"][\"data\"]:\n            item[\"binary\"][\"data\"][\"fileName\"] = item[\"binary\"][\"data\"][\"fileName\"].replace('.oga', '.ogg')\nreturn items"
+      }
+    },
+    {
+      "id": "speechToText",
+      "name": "Speech to Text (Whisper)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [0, -120],
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "method": "POST",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GROQ_API_KEY"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "mergeInputs",
+      "name": "Merge Text & Voice",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [200, 0],
+      "parameters": {
+        "mode": "passThrough"
+      }
+    },
+    {
+      "id": "aiAgent",
+      "name": "AI Agent (Product Intent)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [400, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "User wants to search for a product. Extract intent, budget, and category."
+      }
+    },
+    {
+      "id": "searchProducts",
+      "name": "Search Products (Scraper API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [600, 0],
+      "parameters": {
+        "url": "https://api.scraperapi.com",
+        "method": "GET",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "YOUR_SCRAPER_API_KEY"
+            },
+            {
+              "name": "url",
+              "value": "https://www.amazon.in"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sendTelegramResponse",
+      "name": "Send Message to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [800, 0],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Here are the top product recommendations based on your request."
+      },
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram Bot Credentials (NOT INCLUDED)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{ "node": "Check Message Type", "type": "main", "index": 0 }]]
+    },
+    "Check Message Type": {
+      "main": [
+        [{ "node": "Get Audio File", "type": "main", "index": 0 }],
+        [{ "node": "Merge Text & Voice", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Audio File": {
+      "main": [[{ "node": "Rename .oga to .ogg", "type": "main", "index": 0 }]]
+    },
+    "Rename .oga to .ogg": {
+      "main": [[{ "node": "Speech to Text (Whisper)", "type": "main", "index": 0 }]]
+    },
+    "Speech to Text (Whisper)": {
+      "main": [[{ "node": "Merge Text & Voice", "type": "main", "index": 1 }]]
+    },
+    "Merge Text & Voice": {
+      "main": [[{ "node": "AI Agent (Product Intent)", "type": "main", "index": 0 }]]
+    },
+    "AI Agent (Product Intent)": {
+      "main": [[{ "node": "Search Products (Scraper API)", "type": "main", "index": 0 }]]
+    },
+    "Search Products (Scraper API)": {
+      "main": [[{ "node": "Send Message to Telegram", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "example-version",
+  "meta": {
+    "description": "Sanitized example workflow for portfolio use. No credentials included."
+  }
+}
